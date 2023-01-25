@@ -12,6 +12,14 @@ if ospath.exists('log.txt'):
 basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[FileHandler('log.txt'), StreamHandler()],
                     level=INFO)
+                    
+if 'CONFIG_ENV' in environ:
+    log_info("CONFIG_ENV variable found! Downloading config file ...")
+    download_config_file = srun(["curl", "-sL", f"{environ.get('CONFIG_ENV')}", "-o", "config.env"])
+    if download_config_file.returncode == 0:
+        log_info("Config file downloaded as 'config.env'")
+    else:
+        log_error("Something went wrong while downloading config file! please recheck the CONFIG_ENV variable")
 
 load_dotenv('config.env', override=True)
 

@@ -289,16 +289,20 @@ EQUAL_SPLITS = EQUAL_SPLITS.lower() == 'true'
 MEDIA_GROUP = environ.get('MEDIA_GROUP', '')
 MEDIA_GROUP = MEDIA_GROUP.lower() == 'true'
 
-SERVER_PORT = environ.get('SERVER_PORT', '')
+SERVER_PORT = environ.get('SERVER_PORT', '') or environ.get('PORT', '')
 if len(SERVER_PORT) == 0:
     SERVER_PORT = 80
 else:
     SERVER_PORT = int(SERVER_PORT)
 
-BASE_URL = environ.get('BASE_URL', '').rstrip("/")
-if len(BASE_URL) == 0:
-    log_warning('BASE_URL not provided!')
-    BASE_URL = ''
+if 'RAILWAY_STATIC_URL' in environ:
+    BASE_URL = f"https://{environ.get('RAILWAY_STATIC_URL')}"
+elif 'RENDER_EXTERNAL_URL' in environ:
+    BASE_URL = environ.get('RENDER_EXTERNAL_URL')
+elif 'BASE_URL' in environ:
+    BASE_URL = environ.get('BASE_URL').rstrip("/")
+else:
+    log_warning('BASE_URL not provided! You will not be able to use torrent selection')
 
 UPSTREAM_REPO = environ.get('UPSTREAM_REPO', '')
 if len(UPSTREAM_REPO) == 0:
