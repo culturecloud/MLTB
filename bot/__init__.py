@@ -312,6 +312,9 @@ UPSTREAM_BRANCH = environ.get('UPSTREAM_BRANCH', '')
 if len(UPSTREAM_BRANCH) == 0:
     UPSTREAM_BRANCH = 'master'
 
+SET_BOT_COMMANDS = environ.get('SET_BOT_COMMANDS', '')
+SET_BOT_COMMANDS = SET_BOT_COMMANDS.lower() == 'true'
+
 config_dict = {'AS_DOCUMENT': AS_DOCUMENT,
                'AUTHORIZED_CHATS': AUTHORIZED_CHATS,
                'AUTO_DELETE_MESSAGE_DURATION': AUTO_DELETE_MESSAGE_DURATION,
@@ -346,6 +349,7 @@ config_dict = {'AS_DOCUMENT': AS_DOCUMENT,
                'SEARCH_LIMIT': SEARCH_LIMIT,
                'SEARCH_PLUGINS': SEARCH_PLUGINS,
                'SERVER_PORT': SERVER_PORT,
+               'SET_BOT_COMMANDS': SET_BOT_COMMANDS,
                'STATUS_LIMIT': STATUS_LIMIT,
                'STATUS_UPDATE_INTERVAL': STATUS_UPDATE_INTERVAL,
                'STOP_DUPLICATE': STOP_DUPLICATE,
@@ -380,8 +384,9 @@ if ospath.exists('list_drives.txt'):
                 INDEX_URLS.append('')
 
 if BASE_URL:
-    Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{SERVER_PORT}", shell=True)
-
+    Popen(["gunicorn", "web.wserver:app", "--bind", f"0.0.0.0:{SERVER_PORT}", "--access-logfile=/dev/null", "--error-logfile=/dev/null"])
+    log_info(f"HTTP server started at port {SERVER_PORT}")
+    
 srun(["qbittorrent-nox", "-d", "--profile=."])
 if not ospath.exists('.netrc'):
     srun(["touch", ".netrc"])

@@ -7,7 +7,7 @@ from sys import executable
 from telegram.ext import CommandHandler
 
 from bot import bot, dispatcher, updater, botStartTime, IGNORE_PENDING_REQUESTS, LOGGER, Interval, \
-                DATABASE_URL, app, main_loop, QbInterval, INCOMPLETE_TASK_NOTIFIER
+                DATABASE_URL, app, main_loop, QbInterval, INCOMPLETE_TASK_NOTIFIER, config_dict
 from .helper.ext_utils.fs_utils import start_cleanup, clean_all, exit_clean_up
 from .helper.ext_utils.bot_utils import get_readable_file_size, get_readable_time
 from .helper.ext_utils.db_handler import DbManger
@@ -136,7 +136,43 @@ NOTE: Try each command without any argument to see more detalis.
 def bot_help(update, context):
     sendMessage(help_string, context.bot, update.message)
 
+if config_dict['SET_BOT_COMMANDS']:
+    botcmds = [
+        (f'{BotCommands.MirrorCommand[0]}', 'Mirror'),
+        (f'{BotCommands.ZipMirrorCommand[0]}','Mirror and upload as zip'),
+        (f'{BotCommands.UnzipMirrorCommand[0]}','Mirror and extract files'),
+        (f'{BotCommands.QbMirrorCommand[0]}','Mirror torrent using qBittorrent'),
+        (f'{BotCommands.QbZipMirrorCommand[0]}','Mirror torrent and upload as zip using qb'),
+        (f'{BotCommands.QbUnzipMirrorCommand[0]}','Mirror torrent and extract files using qb'),
+        (f'{BotCommands.YtdlCommand[0]}','Mirror yt-dlp supported link'),
+        (f'{BotCommands.YtdlZipCommand[0]}','Mirror yt-dlp supported link as zip'),
+        (f'{BotCommands.CloneCommand[0]}','Copy file/folder to Drive'),
+        (f'{BotCommands.LeechCommand[0]}','Leech'),
+        (f'{BotCommands.ZipLeechCommand[0]}','Leech and upload as zip'),
+        (f'{BotCommands.UnzipLeechCommand[0]}','Leech and extract files'),
+        (f'{BotCommands.QbLeechCommand[0]}','Leech torrent using qBittorrent'),
+        (f'{BotCommands.QbZipLeechCommand[0]}','Leech torrent and upload as zip using qb'),
+        (f'{BotCommands.QbUnzipLeechCommand[0]}','Leech torrent and extract using qb'),
+        (f'{BotCommands.YtdlLeechCommand[0]}','Leech yt-dlp supported link'),
+        (f'{BotCommands.YtdlZipLeechCommand[0]}','Leech yt-dlp supported link as zip'),
+        (f'{BotCommands.CountCommand}','Count file/folder of Drive'),
+        (f'{BotCommands.DeleteCommand}','Delete file/folder from Drive'),
+        (f'{BotCommands.CancelMirror}','Cancel a task'),
+        (f'{BotCommands.CancelAllCommand}','Cancel all downloading tasks'),
+        (f'{BotCommands.ListCommand}','Search in Drive'),
+        (f'{BotCommands.SearchCommand}','Search in Torrent'),
+        (f'{BotCommands.UserSetCommand[0]}','Users settings'),
+        (f'{BotCommands.BotSetCommand[0]}','BOT settings'),
+        (f'{BotCommands.StatusCommand}','Get mirror status message'),
+        (f'{BotCommands.PingCommand}','Ping the bot'),
+        (f'{BotCommands.RestartCommand}','Restart the bot'),
+        (f'{BotCommands.LogCommand}','Get the bot Log'),
+        (f'{BotCommands.HelpCommand}','Get detailed help')
+    ]
+
 def main():
+    if config_dict['SET_BOT_COMMANDS']:
+        bot.set_my_commands(botcmds)
     start_cleanup()
     if INCOMPLETE_TASK_NOTIFIER and DATABASE_URL:
         if notifier_dict := DbManger().get_incomplete_tasks():
