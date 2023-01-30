@@ -243,7 +243,7 @@ def main():
     dispatcher.add_handler(help_handler)
     dispatcher.add_handler(stats_handler)
     dispatcher.add_handler(log_handler)
-    dispatcher.add_error_handlet(duplicate_instance_handler)
+    dispatcher.add_error_handler(duplicate_instance_handler)
 
     updater.start_polling(drop_pending_updates=IGNORE_PENDING_REQUESTS)
     LOGGER.info("Bot Started!")
