@@ -169,6 +169,10 @@ if config_dict['SET_BOT_COMMANDS']:
         (f'{BotCommands.LogCommand}','Get the bot Log'),
         (f'{BotCommands.HelpCommand}','Get detailed help')
     ]
+    
+def duplicate_instance_handler(update, context):
+    if isinstance(context.error, Conflict) and 'RENDER_EXTERNAL_URL' in environ:
+        pass
 
 def main():
     if config_dict['SET_BOT_COMMANDS']:
@@ -239,6 +243,7 @@ def main():
     dispatcher.add_handler(help_handler)
     dispatcher.add_handler(stats_handler)
     dispatcher.add_handler(log_handler)
+    dispatcher.add_error_handlet(duplicate_instance_handler)
 
     updater.start_polling(drop_pending_updates=IGNORE_PENDING_REQUESTS)
     LOGGER.info("Bot Started!")
