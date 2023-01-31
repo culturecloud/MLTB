@@ -289,7 +289,7 @@ EQUAL_SPLITS = EQUAL_SPLITS.lower() == 'true'
 MEDIA_GROUP = environ.get('MEDIA_GROUP', '')
 MEDIA_GROUP = MEDIA_GROUP.lower() == 'true'
 
-SERVER_PORT = environ.get('SERVER_PORT', '') or environ.get('PORT', '')
+SERVER_PORT = environ.get('SERVER_PORT', '')
 if len(SERVER_PORT) == 0:
     SERVER_PORT = 80
 else:
@@ -297,6 +297,7 @@ else:
 
 if 'RAILWAY_STATIC_URL' in environ:
     BASE_URL = f"https://{environ.get('RAILWAY_STATIC_URL')}"
+    SERVER_PORT = int(environ.get('PORT'))
 elif 'RENDER_EXTERNAL_URL' in environ:
     BASE_URL = environ.get('RENDER_EXTERNAL_URL')
 elif 'BASE_URL' in environ:
