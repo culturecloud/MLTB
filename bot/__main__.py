@@ -85,7 +85,7 @@ async def restart(client, message):
 
 async def ping(client, message):
     start_time = int(round(time() * 1000))
-    reply = await sendMessage("`Calculating latency ...`", message)
+    reply = await sendMessage(message, "`Calculating latency ...`")
     end_time = int(round(time() * 1000))
     await editMessage(f'⚡ `{end_time - start_time} ms`', reply)
 

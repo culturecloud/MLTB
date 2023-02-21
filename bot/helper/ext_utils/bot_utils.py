@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from re import match as re_match
+from re import match as re_match, findall as re_findall
 from time import time
 from math import ceil
 from html import escape
@@ -9,6 +9,7 @@ from urllib.request import urlopen
 from asyncio import create_subprocess_exec, create_subprocess_shell, run_coroutine_threadsafe, sleep
 from asyncio.subprocess import PIPE
 from functools import partial, wraps
+from concurrent.futures import ThreadPoolExecutor
 
 from bot import download_dict, download_dict_lock, botStartTime, DOWNLOAD_DIR, user_data, config_dict, bot_loop
 from bot.helper.telegram_helper.bot_commands import BotCommands
@@ -123,7 +124,7 @@ def get_readable_message():
             globals()['COUNT'] -= STATUS_LIMIT
             globals()['PAGE_NO'] -= 1
     for index, download in enumerate(list(download_dict.values())[COUNT:], start=1):
-        if download.message.chat.type in ['SUPERGROUP', 'CHANNEL']:
+        if download.message.chat.type.name in ['SUPERGROUP', 'CHANNEL']:
             msg += f"<b><a href='{download.message.link}'>{download.status()}</a>: </b>"
         else:
             msg += f"<b>{download.status()}: </b>"
@@ -227,7 +228,7 @@ def get_readable_time(seconds):
     return result
 
 def is_url(url):
-    url = re_match(URL_REGEX, url)
+    url = re_findall(URL_REGEX, url)
     return bool(url)
 
 def is_gdrive_link(url):
@@ -249,7 +250,7 @@ def get_mega_link_type(url):
     return "file"
 
 def is_magnet(url):
-    magnet = re_match(MAGNET_REGEX, url)
+    magnet = re_findall(MAGNET_REGEX, url)
     return bool(magnet)
 
 def get_content_type(link):
@@ -292,19 +293,26 @@ def new_task(func):
 
 async def sync_to_async(func, *args, wait=True, **kwargs):
     pfunc = partial(func, *args, **kwargs)
-    future = bot_loop.run_in_executor(None, pfunc)
-    if wait:
-        return await future
+    with ThreadPoolExecutor() as pool:
+        future = bot_loop.run_in_executor(pool, pfunc)
+        if wait:
+            return await future
+        else:
+            return future
 
 def async_to_sync(func, *args, wait=True, **kwargs):
     future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
     if wait:
         return future.result()
+    else:
+        return future
 
-def async_to_sync_dec(func):
+def new_thread(func):
     @wraps(func)
     def wrapper(*args, wait=False, **kwargs):
         future = run_coroutine_threadsafe(func(*args, **kwargs), bot_loop)
         if wait:
             return future.result()
+        else:
+            return future
     return wrapper

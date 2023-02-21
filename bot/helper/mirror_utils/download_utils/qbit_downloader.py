@@ -45,19 +45,18 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
         if await aiopath.exists(link):
             url = None
             tpath = link
-        op = await sync_to_async(client.torrents_add, url, tpath, path, tags=listener.uid, ratio_limit=ratio,
+        op = await sync_to_async(client.torrents_add, url, tpath, path, tags=f'{listener.uid}', ratio_limit=ratio,
                                            seeding_time_limit=seed_time, headers={'user-agent': 'Wget/1.12'})
         if op.lower() == "ok.":
-            tor_info = await sync_to_async(client.torrents_info, tag=listener.uid)
+            tor_info = await sync_to_async(client.torrents_info, tag=f'{listener.uid}')
             if len(tor_info) == 0:
                 while True:
-                    tor_info = await sync_to_async(client.torrents_info, tag=listener.uid)
+                    tor_info = await sync_to_async(client.torrents_info, tag=f'{listener.uid}')
                     if len(tor_info) > 0:
                         break
-                    elif time() - ADD_TIME >= 60:
-                        msg = "Not added, maybe it will took time and u should remove it manually using eval!"
+                    elif time() - ADD_TIME >= 120:
+                        msg = "Not added! Check if the link is valid or not. If it's torrent file then report, this happens if torrent file size above 10mb."
                         await sendMessage(listener.message, msg)
-                        await __remove_torrent(client, listener.uid)
                         await sync_to_async(client.auth_log_out)
                         return
             tor_info = tor_info[0]
@@ -68,7 +67,6 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
                 return
         else:
             await sendMessage(listener.message, "This is an unsupported/invalid link.")
-            await __remove_torrent(client, ext_hash)
             return
         async with download_dict_lock:
             download_dict[listener.uid] = QbDownloadStatus(listener, ext_hash)
@@ -123,14 +121,14 @@ async def __remove_torrent(client, hash_):
         if hash_ in SEEDING:
             SEEDING.remove(hash_)
 
-async def __onDownloadError(err, client, tor):
+async def __onDownloadError(err, client, tor, button=None):
     LOGGER.info(f"Cancelling Download: {tor.name}")
     await sync_to_async(client.torrents_pause, torrent_hashes=tor.hash)
     await sleep(0.3)
     download = await getDownloadByGid(tor.hash[:12])
     try:
         listener = download.listener()
-        await listener.onDownloadError(err)
+        await listener.onDownloadError(err, button)
     except:
         pass
     await __remove_torrent(client, tor.hash)
@@ -164,9 +162,9 @@ async def __stop_duplicate(client, tor):
             if qbname is not None:
                  qbmsg, button = await sync_to_async(GoogleDriveHelper().drive_list, qbname, True)
                  if qbmsg:
-                    await __onDownloadError("File/Folder is already available in Drive.", client, tor)
-                    await sendMessage(listener.message, "Here are the search results:", button)
-                    return
+                     qbmsg = 'File/Folder is already available in Drive.\nHere are the search results:'
+                     await __onDownloadError(qbmsg, client, tor, button)
+                     return
     except:
         pass
 

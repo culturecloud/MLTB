@@ -59,6 +59,15 @@ def clean_all():
     except:
         pass
 
+def exit_clean_up(signal, frame):
+    try:
+        LOGGER.info("Please wait, while we clean up the downloads and stop running downloads")
+        clean_all()
+        sysexit(0)
+    except KeyboardInterrupt:
+        LOGGER.warning("Force Exiting before the cleanup finishes!")
+        sysexit(1)
+
 async def clean_unwanted(path):
     LOGGER.info(f"Cleaning unwanted files/folders: {path}")
     for dirpath, subdir, files in await sync_to_async(walk, path, topdown=False):

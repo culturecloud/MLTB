@@ -1,38 +1,30 @@
-import logging
+from logging import FileHandler, StreamHandler, INFO, basicConfig, error as log_error, info as log_info
 from os import path as ospath, environ
 from subprocess import run as srun
 from requests import get as rget
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from web.log_config import configure_logger
 
-configure_logger()
-LOGGER = logging.getLogger(__name__)
-
-if ospath.exists('info.log'):
-    with open('info.log', 'r+') as f:
+if ospath.exists('log.txt'):
+    with open('log.txt', 'r+') as f:
         f.truncate(0)
-                    
-if 'CONFIG_ENV' in environ:
-    LOGGER.info("CONFIG_ENV variable found! Downloading config file ...")
-    download_config_file = srun(["curl", "-sL", f"{environ.get('CONFIG_ENV')}", "-o", "config.env"])
-    if download_config_file.returncode == 0:
-        LOGGER.info("Config file downloaded as 'config.env'")
-    else:
-        LOGGER.error("Something went wrong while downloading config file! please recheck the CONFIG_ENV variable")
+
+basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[FileHandler('log.txt'), StreamHandler()],
+                    level=INFO)
 
 load_dotenv('config.env', override=True)
 
 try:
     if bool(environ.get('_____REMOVE_THIS_LINE_____')):
-        LOGGER.error('The README.md file there to be read! Exiting now!')
+        log_error('The README.md file there to be read! Exiting now!')
         exit()
 except:
     pass
 
 BOT_TOKEN = environ.get('BOT_TOKEN', '')
 if len(BOT_TOKEN) == 0:
-    LOGGER.error("BOT_TOKEN variable is missing! Exiting now")
+    log_error("BOT_TOKEN variable is missing! Exiting now")
     exit(1)
 
 bot_id = BOT_TOKEN.split(':', 1)[0]
@@ -40,14 +32,10 @@ bot_id = BOT_TOKEN.split(':', 1)[0]
 DATABASE_URL = environ.get('DATABASE_URL', '')
 if len(DATABASE_URL) == 0:
     DATABASE_URL = None
-    
-DATABASE_NAME = environ.get('DATABASE_NAME', '')
-if len(DATABASE_NAME) == 0:
-    DATABASE_NAME = 'MLTB'
 
 if DATABASE_URL is not None:
     conn = MongoClient(DATABASE_URL)
-    db = conn[DATABASE_NAME]
+    db = conn.mltb
     if config_dict := db.settings.config.find_one({'_id': bot_id}):  #retrun config dict (all env vars)
         environ['UPSTREAM_REPO'] = config_dict['UPSTREAM_REPO']
         environ['UPSTREAM_BRANCH'] = config_dict['UPSTREAM_BRANCH']
@@ -66,8 +54,8 @@ if UPSTREAM_REPO is not None:
         srun(["rm", "-rf", ".git"])
 
     update = srun([f"git init -q \
-                     && git config --global user.email admin@culturecloud.gq \
-                     && git config --global user.name culturecloud \
+                     && git config --global user.email e.anastayyar@gmail.com \
+                     && git config --global user.name mltb \
                      && git add . \
                      && git commit -sm update -q \
                      && git remote add origin {UPSTREAM_REPO} \
@@ -75,6 +63,6 @@ if UPSTREAM_REPO is not None:
                      && git reset --hard origin/{UPSTREAM_BRANCH} -q"], shell=True)
 
     if update.returncode == 0:
-        LOGGER.info(f'Successfully updated with latest commit from {UPSTREAM_REPO} ({UPSTREAM_BRANCH})')
+        log_info('Successfully updated with latest commit from UPSTREAM_REPO')
     else:
-        LOGGER.error('Something went wrong while updating, check UPSTREAM_REPO if valid or not!')
+        log_error('Something went wrong while updating, check UPSTREAM_REPO if valid or not!')
