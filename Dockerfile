@@ -1,10 +1,13 @@
-FROM anasty17/mltb:dev
+FROM culturecloud/mltb:alpine
 
-WORKDIR /usr/src/app
-RUN chmod 777 /usr/src/app
+ARG DEPLOY_BRANCH="freepaas"
 
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN git clone -b \
+    $DEPLOY_BRANCH \
+    https://github.com/culturecloud/mltb-rclone \
+    /culturecloud/mltb
+    
+WORKDIR /culturecloud/mltb
 
 COPY . .
 

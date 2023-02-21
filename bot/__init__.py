@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import logging
 from uvloop import install
 install()
-from logging import getLogger, FileHandler, StreamHandler, INFO, basicConfig, error as log_error, info as log_info, warning as log_warning
 from socket import setdefaulttimeout
 from faulthandler import enable as faulthandler_enable
 from qbittorrentapi import Client as qbClient
@@ -13,21 +13,19 @@ from threading import Thread
 from dotenv import load_dotenv
 from asyncio import Lock
 from pymongo import MongoClient
-from pyrogram import Client as tgClient, enums
+from pyrogram import Client as tgClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from tzlocal import get_localzone
+from bot.log_config import configure_logger
+
+configure_logger()
+LOGGER = logging.getLogger(__name__)
 
 faulthandler_enable()
 
 setdefaulttimeout(600)
 
 botStartTime = time()
-
-basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[FileHandler('log.txt'), StreamHandler()],
-                    level=INFO)
-
-LOGGER = getLogger(__name__)
 
 load_dotenv('config.env', override=True)
 
@@ -47,7 +45,7 @@ non_queued_up = set()
 
 try:
     if bool(environ.get('_____REMOVE_THIS_LINE_____')):
-        log_error('The README.md file there to be read! Exiting now!')
+        LOGGER.error('The README.md file there to be read! Exiting now!')
         exit()
 except:
     pass
@@ -63,7 +61,7 @@ rss_dict = {}
 
 BOT_TOKEN = environ.get('BOT_TOKEN', '')
 if len(BOT_TOKEN) == 0:
-    log_error("BOT_TOKEN variable is missing! Exiting now")
+    LOGGER.error("BOT_TOKEN variable is missing! Exiting now")
     exit(1)
 
 bot_id = BOT_TOKEN.split(':', 1)[0]
@@ -72,9 +70,13 @@ DATABASE_URL = environ.get('DATABASE_URL', '')
 if len(DATABASE_URL) == 0:
     DATABASE_URL = ''
 
+DATABASE_NAME = environ.get('DATABASE_NAME', '')
+if len(DATABASE_NAME) == 0:
+    DATABASE_NAME = 'MLTB'
+
 if DATABASE_URL:
     conn = MongoClient(DATABASE_URL)
-    db = conn.mltb
+    db = conn[DATABASE_NAME]
     if config_dict := db.settings.config.find_one({'_id': bot_id}):  #retrun config dict (all env vars)
         del config_dict['_id']
         for key, value in config_dict.items():
@@ -101,21 +103,21 @@ else:
 
 OWNER_ID = environ.get('OWNER_ID', '')
 if len(OWNER_ID) == 0:
-    log_error("OWNER_ID variable is missing! Exiting now")
+    LOGGER.error("OWNER_ID variable is missing! Exiting now")
     exit(1)
 else:
     OWNER_ID = int(OWNER_ID)
 
 TELEGRAM_API = environ.get('TELEGRAM_API', '')
 if len(TELEGRAM_API) == 0:
-    log_error("TELEGRAM_API variable is missing! Exiting now")
+    LOGGER.error("TELEGRAM_API variable is missing! Exiting now")
     exit(1)
 else:
     TELEGRAM_API = int(TELEGRAM_API)
 
 TELEGRAM_HASH = environ.get('TELEGRAM_HASH', '')
 if len(TELEGRAM_HASH) == 0:
-    log_error("TELEGRAM_HASH variable is missing! Exiting now")
+    LOGGER.error("TELEGRAM_HASH variable is missing! Exiting now")
     exit(1)
 
 GDRIVE_ID = environ.get('GDRIVE_ID', '')
@@ -124,7 +126,7 @@ if len(GDRIVE_ID) == 0:
 
 DOWNLOAD_DIR = environ.get('DOWNLOAD_DIR', '')
 if len(DOWNLOAD_DIR) == 0:
-    DOWNLOAD_DIR = '/usr/src/app/downloads/'
+    DOWNLOAD_DIR = '/culturecloud/mltb/downloads/'
 elif not DOWNLOAD_DIR.endswith("/"):
     DOWNLOAD_DIR = f'{DOWNLOAD_DIR}/'
 
@@ -150,21 +152,21 @@ IS_PREMIUM_USER = False
 user = ''
 USER_SESSION_STRING = environ.get('USER_SESSION_STRING', '')
 if len(USER_SESSION_STRING) != 0:
-    log_info("Creating client from USER_SESSION_STRING")
+    LOGGER.info("Creating client from USER_SESSION_STRING")
     user = tgClient('user', TELEGRAM_API, TELEGRAM_HASH, session_string=USER_SESSION_STRING,
-                    parse_mode=enums.ParseMode.HTML, no_updates=True, takeout=True,
+                    no_updates=True, takeout=True, in_memory=True,
                     max_concurrent_transmissions=10).start()
     IS_PREMIUM_USER = user.me.is_premium
 
 MEGA_API_KEY = environ.get('MEGA_API_KEY', '')
 if len(MEGA_API_KEY) == 0:
-    log_warning('MEGA API KEY not provided!')
+    LOGGER.warning('MEGA API KEY not provided!')
     MEGA_API_KEY = ''
 
 MEGA_EMAIL_ID = environ.get('MEGA_EMAIL_ID', '')
 MEGA_PASSWORD = environ.get('MEGA_PASSWORD', '')
 if len(MEGA_EMAIL_ID) == 0 or len(MEGA_PASSWORD) == 0:
-    log_warning('MEGA Credentials not provided!')
+    LOGGER.warning('MEGA Credentials not provided!')
     MEGA_EMAIL_ID = ''
     MEGA_PASSWORD = ''
 
@@ -268,16 +270,20 @@ EQUAL_SPLITS = EQUAL_SPLITS.lower() == 'true'
 MEDIA_GROUP = environ.get('MEDIA_GROUP', '')
 MEDIA_GROUP = MEDIA_GROUP.lower() == 'true'
 
-SERVER_PORT = environ.get('SERVER_PORT', '')
+SERVER_PORT = environ.get('PORT', '')
 if len(SERVER_PORT) == 0:
     SERVER_PORT = 80
 else:
     SERVER_PORT = int(SERVER_PORT)
 
-BASE_URL = environ.get('BASE_URL', '').rstrip("/")
-if len(BASE_URL) == 0:
-    log_warning('BASE_URL not provided!')
-    BASE_URL = ''
+if 'RAILWAY_STATIC_URL' in environ:
+    BASE_URL = f"https://{environ.get('RAILWAY_STATIC_URL')}"
+elif 'RENDER_EXTERNAL_URL' in environ:
+    BASE_URL = environ.get('RENDER_EXTERNAL_URL')
+elif 'BASE_URL' in environ:
+    BASE_URL = environ.get('BASE_URL').rstrip("/")
+else:
+    LOGGER.warning('BASE_URL not provided! You will not be able to use torrent selection')
 
 UPSTREAM_REPO = environ.get('UPSTREAM_REPO', '')
 if len(UPSTREAM_REPO) == 0:
@@ -287,6 +293,9 @@ UPSTREAM_BRANCH = environ.get('UPSTREAM_BRANCH', '')
 if len(UPSTREAM_BRANCH) == 0:
     UPSTREAM_BRANCH = 'master'
 
+SET_BOT_COMMANDS = environ.get('SET_BOT_COMMANDS', 'False')
+SET_BOT_COMMANDS = SET_BOT_COMMANDS.lower() == 'true'
+
 config_dict = {'AS_DOCUMENT': AS_DOCUMENT,
                'AUTHORIZED_CHATS': AUTHORIZED_CHATS,
                'AUTO_DELETE_MESSAGE_DURATION': AUTO_DELETE_MESSAGE_DURATION,
@@ -294,6 +303,7 @@ config_dict = {'AS_DOCUMENT': AS_DOCUMENT,
                'BOT_TOKEN': BOT_TOKEN,
                'CMD_SUFFIX': CMD_SUFFIX,
                'DATABASE_URL': DATABASE_URL,
+               'DATABASE_NAME': DATABASE_NAME,
                'DOWNLOAD_DIR': DOWNLOAD_DIR,
                'DUMP_CHAT': DUMP_CHAT,
                'EQUAL_SPLITS': EQUAL_SPLITS,
@@ -318,6 +328,7 @@ config_dict = {'AS_DOCUMENT': AS_DOCUMENT,
                'SEARCH_LIMIT': SEARCH_LIMIT,
                'SEARCH_PLUGINS': SEARCH_PLUGINS,
                'SERVER_PORT': SERVER_PORT,
+               'SET_BOT_COMMANDS': SET_BOT_COMMANDS,
                'STATUS_LIMIT': STATUS_LIMIT,
                'STATUS_UPDATE_INTERVAL': STATUS_UPDATE_INTERVAL,
                'STOP_DUPLICATE': STOP_DUPLICATE,
@@ -352,7 +363,7 @@ if ospath.exists('list_drives.txt'):
                 INDEX_URLS.append('')
 
 if BASE_URL:
-    Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{SERVER_PORT}", shell=True)
+    Popen(["gunicorn", "web.server:app", f"--bind=0.0.0.0:{SERVER_PORT}", "--logger-class=web.log_config.StubbedGunicornLogger"])
 
 srun(["qbittorrent-nox", "-d", "--profile=."])
 if not ospath.exists('.netrc'):
@@ -361,7 +372,8 @@ if not ospath.exists('.netrc'):
 srun(["chmod", "600", ".netrc"])
 srun(["cp", ".netrc", "/root/.netrc"])
 srun(["chmod", "+x", "aria.sh"])
-srun("./aria.sh", shell=True)
+srun(["bash", "aria2/tracker.sh"])
+srun(["aria2c", "--conf-path=aria2/aria2.conf"])
 if ospath.exists('accounts.zip'):
     if ospath.exists('accounts'):
         srun(["rm", "-rf", "accounts"])
@@ -379,7 +391,7 @@ def get_client():
 
 def aria2c_init():
     try:
-        log_info("Initializing Aria2c")
+        LOGGER.info("Initializing Aria2c")
         link = "https://linuxmint.com/torrents/lmde-5-cinnamon-64bit.iso.torrent"
         dire = DOWNLOAD_DIR.rstrip("/")
         aria2.add_uris([link], {'dir': dire})
@@ -388,7 +400,7 @@ def aria2c_init():
         sleep(15)
         aria2.remove(downloads, force=True, files=True, clean=True)
     except Exception as e:
-        log_error(f"Aria2c initializing error: {e}")
+        LOGGER.error(f"Aria2c initializing error: {e}")
 Thread(target=aria2c_init).start()
 sleep(1.5)
 
@@ -420,9 +432,8 @@ else:
             del qb_opt[k]
     qb_client.app_set_preferences(qb_opt)
 
-log_info("Creating client from BOT_TOKEN")
-bot = tgClient('bot', TELEGRAM_API, TELEGRAM_HASH, bot_token=BOT_TOKEN, parse_mode=enums.ParseMode.HTML,
-               max_concurrent_transmissions=10).start()
+LOGGER.info("Creating client from BOT_TOKEN")
+bot = tgClient('bot', TELEGRAM_API, TELEGRAM_HASH, bot_token=BOT_TOKEN, max_concurrent_transmissions=10, in_memory=True).start()
 bot_loop = bot.loop
 bot_name = bot.me.username
 scheduler = AsyncIOScheduler(timezone=str(get_localzone()), event_loop=bot_loop)

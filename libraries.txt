@@ -17,6 +17,7 @@ gunicorn
 git+https://github.com/zevtyardt/lk21.git
 httpx
 lxml
+loguru
 motor
 natsort
 pillow
