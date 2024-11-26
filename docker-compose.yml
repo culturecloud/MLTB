@@ -1,0 +1,82 @@
+services:
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: cloudflared
+  #   depends_on:
+  #     - warp
+  #   #   - gluetun
+  #   #   - web-monitor
+  #   #   - qbittorrent
+  #   #   - jackett
+  #   #   - duplicati
+  #   command: tunnel --no-autoupdate run
+  #   environment:
+  #     - TUNNEL_TOKEN=eyJhIjoiNjg1N2IxYjYxNzk2ZWI1MzA4MjI5ZWExNDU5ZTk4OTkiLCJ0IjoiYzI5MjJmY2MtZmVlYi00MzM0LThjNGYtYmQxOGE0NmFiY2JiIiwicyI6IlpUazNNVGxqTVRndE5tSXdaaTAwTVRSakxXRm1PRGd0WlRSbE1UWTNOMlUwWWpoaCJ9
+  #   ports:
+  #     - 6881:6881 # Torrenting
+  #     - 6881:6881/udp
+  #   restart: unless-stopped
+
+  # warp:
+  #   image: ghcr.io/culturecloud/warp:latest
+  #   container_name: warp
+  #   environment:
+  #     - GOST_ARGS=-L socks5+grpc://:1080?notls=true&udp=true&udpBufferSize=4096
+  #     - WARP_SLEEP=3
+  #   cap_add:
+  #     - NET_ADMIN
+  #   sysctls:
+  #     - net.ipv6.conf.all.disable_ipv6=0
+  #     - net.ipv4.conf.all.src_valid_mark=1
+  #   volumes:
+  #     - $HOME/appdata/warp:/var/lib/cloudflare-warp
+  #   ports:
+  #     - 1080:1080
+  #     - 8181:8181
+  #   restart: unless-stopped
+  
+  # gluetun:
+  #   image: ghcr.io/qdm12/gluetun
+  #   container_name: gluetun
+  #   # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun:/dev/net/tun
+  #   environment:
+  #     # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+  #     - VPN_SERVICE_PROVIDER=protonvpn
+  #     - VPN_TYPE=wireguard
+  #     - WIREGUARD_PRIVATE_KEY=SNGQwrEpFUCcggllHeZB0Yr68mtqKNZQT+mTymo1L10=
+  #     - WIREGUARD_ADDRESSES=10.2.0.2/32
+  #     - SERVER_COUNTRIES=Japan
+  #     - FREE_ONLY=on
+  #     # - BLOCK_ADS=on
+  #     # - BLOCK_SURVEILLANCE=on
+  #     # - HTTPPROXY=on
+  #     # - HTTPPROXY_USER=fuad
+  #     # - HTTPPROXY_PASSWORD=hasan
+  #     # - HTTPPROXY_STEALTH=on
+  #     - TZ=Asia/Dhaka
+  #     - PUID=1000
+  #     - PGID=1000
+  #   volumes:
+  #     - $HOME/appdata/gluetun:/gluetun
+  #   # ports:
+  #   #   - 8888:8888 # HTTP proxy
+  #   #   # - 8388:8388 # Shadowsocks
+  #   #   # - 8388:8388/udp # Shadowsocks
+  #   restart: unless-stopped
+
+  mltb:
+    container_name: mltb
+    build: .
+    # depends_on:
+    #   - warp
+    # network_mode: "service:warp"
+    command: bash start.sh
+    # volumes:
+    #   - $HOME/downloads:/usr/src/app/downloads
+    # ports:
+    #   - "8181:8181"
+    restart: unless-stopped
